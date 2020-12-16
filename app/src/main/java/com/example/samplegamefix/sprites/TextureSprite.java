@@ -324,7 +324,7 @@ public abstract class TextureSprite implements PoolableSprite
      * Phương thức xác định va chạm một cách đơn giản bằng việc giả định mỗi sprite sẽ là một hình tròn
      * Thực hiện việc tính toán để xem xem khoảng cách giữa 2 sprite có nhỏ hơn tổng của bán kính 2 sprite đó
      *
-     * By default a sprite has a collision circle centered in the sprite with radius 1 but you can
+     * Theo mặc định thì sprite luôn có một vòng tròn va trạm với tâm của vòng trò có bán kính là 1
      * nhưng bạn có thể tùy chỉnh nó nếu như bạn muốn một vòng tròn nhỏ hơn hoặc muốn bù(offset) nó
       !Note: Adjusts the center and radius using the scale of the sprite IN THE X DIRECTION
       !Note: Nên tùy chỉnh tâm và bán kính sử dụng tỉ lệ của sprite THEO HƯỚNG X
