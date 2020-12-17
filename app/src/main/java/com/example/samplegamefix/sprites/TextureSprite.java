@@ -52,7 +52,7 @@ public abstract class TextureSprite implements PoolableSprite
      *  tọa độ cho texture là một hình vuông 2d với mỗi đỉnh tương ứng với các tọa độ x,y
      **/
 
-    private static final float TEXTURE_COORDINATES[] =
+    private static final float[] TEXTURE_COORDINATES =
             {
                     0.0f, 1.0f, //x,y
                     1.0f, 1.0f, //x,y
@@ -66,10 +66,11 @@ public abstract class TextureSprite implements PoolableSprite
      */
     private static final int COORDS_PER_VERTEX = 3;
 
-    /** gán tọa độ cho hình vuông chứa sprite
+    /**
+     * gán tọa độ cho hình vuông chứa sprite
      * Nếu bạn để ý thì vì đây là tọa độ 2 chiều nên chiều z luôn luôn là 0
      * */
-    private static float SQUARE_COORDINATES[] =
+    private static final float[] SQUARE_COORDINATES =
             {
                     -1.0f, -1.0f, 0.0f, //x,y,z, đỉnh 0, dưới trái
                      1.0f, -1.0f, 0.0f, //x,y,z, đỉnh 1, trên trái
@@ -81,15 +82,15 @@ public abstract class TextureSprite implements PoolableSprite
      * Đây là thứ tự thường thấy để vẽ hình vuông trong OpenGL
      * Bạn đang thắc mắc 0,1,2,3 là cái gì??? Đó chính là thứ tự đỉnh ta đã được đa đưa vào ở ngay trên, thứ tự vẽ đỉnh trong OpenGL sẽ diễn ra đúng như thế
      * */
-    private static final short DRAW_ORDER[] = { 0, 1, 2, 0, 2, 3 };
+    private static final short[] DRAW_ORDER = { 0, 1, 2, 0, 2, 3 };
 
     private static final int VERTEX_STRIDE = COORDS_PER_VERTEX * 4; // 4 bytes cho mỗi vertex = 32 bit lưu giá trị
 
     /**
      * Khởi tạo các bộ đệm lưu giữ lần lượt tọa độ điểm, thứ tự vẽ hình và lưu giữ texture
-     * @_vertexBuffer là bộ đệm lưu giữ tọa tọa độ các đỉnh của hình khối muốn vẽ, với các tọa độ ở dạng float
-     * @_drawListBuffer là bộ đệm lưu giữa thứ tự vẽ các đỉnh, vì là thứ tự nên sẽ dùng số nguyên dương, ta dùng short
-     * @_textureBuffer là bộ đệm dùng để trợ giúp việc vẽ texture lên hình khối, tương tự như _vertexBuffer nên dùng float
+     * _vertexBuffer là bộ đệm lưu giữ tọa tọa độ các đỉnh của hình khối muốn vẽ, với các tọa độ ở dạng float
+     * _drawListBuffer là bộ đệm lưu giữa thứ tự vẽ các đỉnh, vì là thứ tự nên sẽ dùng số nguyên dương, ta dùng short
+     * _textureBuffer là bộ đệm dùng để trợ giúp việc vẽ texture lên hình khối, tương tự như _vertexBuffer nên dùng float
      *  **/
     private static FloatBuffer _vertexBuffer;
     private static ShortBuffer _drawListBuffer;
@@ -111,14 +112,14 @@ public abstract class TextureSprite implements PoolableSprite
 
 
     // Khu vực lưu trữ trạng thái sprite
-    protected float _currentPos[] = new float[3];
-    protected float _vector[] = new float[3];
+    protected float[] _currentPos = new float[3];
+    protected float[] _vector = new float[3];
 
     /**
      * Trung tâm của sprite cần vẽ có thể được tùy chỉnh hợp lý cho việc xác định các va chạm(collision)
      * Giá trị nên được giữ ở mức giữa -1 và 1
      */
-    protected float _center[] = new float[2];
+    protected float[] _center = new float[2];
     /**
      * bán kính(radius) của sprite có thể được tùy chỉnh cho việc xác định các va chạm
      * giá trị nên được giữ ở mức giữa 0 và 1
@@ -128,7 +129,7 @@ public abstract class TextureSprite implements PoolableSprite
     /**
      * tỉ lệ(scale)của sprite hiện tại sẽ là một mảng chứa giá trị thể hiện tỉ lệ bình thường của x:y là 1:1 v
      */
-    protected float _currentScale[] = new float[] { 1.0f, 1.0f };
+    protected float[] _currentScale = new float[] { 1.0f, 1.0f };
     //Biến dùng cho việc gán sprite có thể tự xoay quanh trục z nếu muốn
     protected float _rotationZ = 0.0f;
 
@@ -138,7 +139,7 @@ public abstract class TextureSprite implements PoolableSprite
     protected boolean _inUse;
 
     //Khởi tạo ma trận gốc dùng cho việc nhân ma trận để ánh xạ vào OpenGL về sau
-    private float scratchMatrix[] = new float[16];
+    private float[] scratchMatrix = new float[16];
     // Kết thúc khu vực
 
     protected Context _context;
@@ -190,11 +191,11 @@ public abstract class TextureSprite implements PoolableSprite
         GLES20.glAttachShader(_programHandle, vertexShader);   // Nạp vào vertexShader(phủ lên đỉnh)
         GLES20.glAttachShader(_programHandle, fragmentShader); // Nạp vào fragmentShader(phủ lên mảnh)
 
-        GLES20.glBindAttribLocation(_programHandle, 0, TEXTURE_COORDINATE_PARAM); //Giá hệ tọa độ texture lên hình đã vẽ
+        GLES20.glBindAttribLocation(_programHandle, 0, TEXTURE_COORDINATE_PARAM); //Gán hệ tọa độ texture lên hình đã vẽ
         GLES20.glLinkProgram(_programHandle); // gán tất cả chương trình vào kết nối chuẩn bị cho việc chạy về sau
 
         /** Phần này sẽ định nghĩa vị trí trong bộ nhớ cho các biến trong phần code GLSL một cách tự động,
-         * ta có thể tự định nghĩa vị trí(location) cho nó bằng glBinhAttribLocation hoặc viết thẳng vào
+         * ta có thể tự định nghĩa vị trí(location) cho nó bằng glBindAttribLocation hoặc viết thẳng vào
          * phần vertexShader ở trên nếu muốn (nhưng không khuyến khích - nhất là gà mờ như tôi và bạn)
         */
         positionHandle = GLES20.glGetAttribLocation(_programHandle, POSITION_PARAM);
@@ -205,7 +206,7 @@ public abstract class TextureSprite implements PoolableSprite
     /**
      * Cập nhật trạng thái của các sprite mỗi vòng vẽ mới
      *
-     * @trảvề true nếu sprite vẫn muốn sống, false nếu như nó đã xong nhiệm vụ của mình và sẵn sàng để chết
+     * @return true nếu sprite vẫn muốn sống, false nếu như nó đã xong nhiệm vụ của mình và sẵn sàng để chết
      */
     public abstract boolean update ();
 
@@ -237,12 +238,13 @@ public abstract class TextureSprite implements PoolableSprite
           - Dữ liệu vị trí được lưu giữ trong số thập phân 32 bit bằng cách dùng float
           - Mỗi một vị trí sẽ được tạo ra bởi 4 giá trị trong 32 bit đó
           - Sẽ không có bất kì khoảng cách nào giữa các bộ giá trị đó. Chúng được đóng gói vừa khít trong một mảng
-          - Giá trị đầu tiên trong mảng sẽ là phần bắt đầu của bộ đệm
+          - Bộ đệm mà ta sẽ sử dụng
+
          glVertexAttribPointer sẽ nói cho OpenGL ES tất cả đống kia
-         * Tham số thứ 3 - @GLES20.GL_FLOAT sẽ đại diện cho bộ nhớ của số float, tương ứng với 32 bit
-         * Tham số thứ 2 - COORDS_PER_VERTEX định nghĩa bao nhiêu giá trị trong đó đại diện cho một mảnh của dữ liệu
-         * Tham số thứ 5 xác định khoảng cách giữa các bộ dữ liệu, nó là 0 tức là không có khoảng cách nào, ở đây là 12
-         * Tham số thứ 6 xác định số byte offset khỏi giá trị của bộ đệm ở phía trước
+         * @param GLES20.GL_FLOAT Tham số thứ 3 -  sẽ đại diện cho bộ nhớ của số float, tương ứng với 32 bit
+         * @param COORDS_PER_VERTEX Tham số thứ 2 - COORDS_PER_VERTEX định nghĩa bao nhiêu giá trị trong đó đại diện cho một mảnh của dữ liệu
+         * Tham số thứ 5 xác định khoảng cách giữa các bộ dữ liệu liên tiếp nhau, nó là 0 tức là chúng ta sẽ để OpenGL ES tự định nghĩa, ở đây là 12
+         * Tham số thứ 6 xác định bô đệm mà ta sử dụng - khác với OpenGL trên C++ là tham số xác định vị trí offset trong bộ đệm
          * Tham số thứ 4 là chuẩn hóa, ta không cần quan tâm vì đơn giản nó đa số các trường hợp là dùng false
          */
         GLES20.glVertexAttribPointer(positionHandle, COORDS_PER_VERTEX, GLES20.GL_FLOAT, false, VERTEX_STRIDE, _vertexBuffer);
