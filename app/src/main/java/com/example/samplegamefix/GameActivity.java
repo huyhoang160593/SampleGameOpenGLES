@@ -38,7 +38,6 @@ public class GameActivity extends AppCompatActivity implements ViewTreeObserver.
         ButterKnife.bind(this);
 
         _root.getViewTreeObserver().addOnGlobalLayoutListener(this);
-//        relativeLayout.setBackgroundResource(R.drawable.skybackground2);
     }
 
     @Override

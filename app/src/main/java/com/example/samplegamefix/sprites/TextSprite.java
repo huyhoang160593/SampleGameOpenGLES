@@ -51,7 +51,7 @@ public class TextSprite extends TextureSprite
         if (_glText == null)
         {
             _glText = new GLText(_context.getAssets());
-            _glText.load("OpenSans-Light.ttf", textSize, 2, 2);
+            _glText.load("CyberwayRiders-lg97d.ttf", textSize, 2, 2);
         }
     }
 

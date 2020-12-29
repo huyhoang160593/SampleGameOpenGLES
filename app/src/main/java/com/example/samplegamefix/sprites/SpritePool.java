@@ -88,7 +88,7 @@ public class SpritePool<T extends PoolableSprite>
         return _pool;
     }
 
-    public void clear ()
+    public void clear()
     {
         for (int i = 0; i < _pool.size(); i++)
         {

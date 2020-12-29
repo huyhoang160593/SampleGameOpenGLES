@@ -3,9 +3,9 @@ package com.example.samplegamefix.engine;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.media.MediaPlayer;
 import android.os.SystemClock;
 import android.util.Log;
-
 import com.example.samplegamefix.R;
 import com.example.samplegamefix.helper.TiltHelper;
 import com.example.samplegamefix.sprites.AsteroidSprite;
@@ -15,7 +15,6 @@ import com.example.samplegamefix.sprites.PlayerSprite;
 import com.example.samplegamefix.sprites.SpritePool;
 import com.example.samplegamefix.sprites.TextSprite;
 import com.example.samplegamefix.sprites.TextureSprite;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,11 +36,15 @@ public class GameEngine
     private AsteroidSprite _asteroidIcon;
     private TextSprite _asteroidCountText;
     private TextSprite _gameOverText;
+    private TextSprite _rankText;
+    private MediaPlayer FXPlayer;
     //endregion
 
     //region game state
     private boolean _playing = false;
-    private int _asteroidCount;
+    private int _asteroidCount = 0;
+    private int combo = 0;
+    private int bestCombo = 0;
     private int _frames;
     private int _framesBetweenAddingAsteroid = 64;
     //endregion
@@ -52,7 +55,7 @@ public class GameEngine
     private float _height;
 
     Map<Integer, Rect> _viewLocations;
-    private Log Timber;
+    private Log Logging;
     //endregion
 
     public GameEngine (Context context)
@@ -61,64 +64,65 @@ public class GameEngine
         _asteroidPool = new SpritePool<>(context, 100, AsteroidSprite.class);
         _brokenAsteroidPool = new SpritePool<>(context, 100, BrokenAsteroidSprite.class);
         _chickenPool = new SpritePool<>(context, 5, ChickenSprite.class);
+        FXPlayer = new MediaPlayer();
 
         startGame();
     }
 
+    public void playSound(Context context,int _id)
+    {
+        if(FXPlayer != null)
+        {
+            FXPlayer.stop();
+            FXPlayer.release();
+        }
+        FXPlayer = MediaPlayer.create(context, _id);
+        if(FXPlayer != null)
+            FXPlayer.start();
+    }
+
+
     public void initSprites ()
     {
         TextureSprite.clearTextureCache();
-
         int asteroidCount = _asteroidPool.getSprites().size();
-        for (int i = 0; i < asteroidCount; i++)
-        {
+        for (int i = 0; i < asteroidCount; i++) {
             AsteroidSprite asteroidSprite = _asteroidPool.getSprites().get(i);
             asteroidSprite.reloadTexture();
         }
         int chickenCount = _chickenPool.getSprites().size();
-        for (int i = 0; i < chickenCount; i++)
-        {
+        for (int i = 0; i < chickenCount; i++) {
             ChickenSprite chickenSprite = _chickenPool.getSprites().get(i);
             chickenSprite.reloadTexture();
         }
-        if (_player == null)
-        {
+        if (_player == null) {
             _tiltHelper = TiltHelper.getInstance(_context);
             _player = new PlayerSprite(_context, R.drawable.ship2, _tiltHelper);
-        }
-        else
-        {
+        } else {
             _player.reloadTexture();
         }
 
-        if (_asteroidIcon == null)
-        {
+        if (_asteroidIcon == null) {
             _asteroidIcon = spawnAsteroid();
-        }
-        else
-        {
+        } else {
             _asteroidIcon.reloadTexture();
         }
 
-        if (_asteroidCountText == null)
-        {
+        if (_asteroidCountText == null) {
             _asteroidCountText = new TextSprite();
             _asteroidCountText.setContext(_context);
-        }
-        else
-        {
+        } else {
             _asteroidCountText.reloadTexture();
         }
 
-        if (_gameOverText == null)
-        {
+        if (_gameOverText == null) {
             _gameOverText = new TextSprite();
             _gameOverText.setContext(_context);
-            _gameOverText.setText("Game Over", TextSprite.TEXT_ALIGN_CENTER, 0, Color.WHITE);
-        }
-        else
-        {
+            _rankText = new TextSprite();
+            _rankText.setContext(_context);
+        } else {
             _gameOverText.reloadTexture();
+            _rankText.reloadTexture();
         }
     }
 
@@ -139,18 +143,18 @@ public class GameEngine
         }
         _gameOverText.init(ratio, _width, Math.round(_context.getResources().getDimension(R.dimen.game_over_text_size)));
         _gameOverText.getPosition()[1] = 0;
+        _rankText.init(ratio, _width, Math.round(_context.getResources().getDimension(R.dimen.rank_text_size)));
+        _rankText.getPosition()[1] = -0.3f;
 
         setViewLocations(_viewLocations);
     }
 
     public void drawFrame (float matrix[])
     {
-        if (_chickens.isEmpty())
-        {
+        if (_chickens.isEmpty()) {
+            playSound(_context,R.raw.gameoversound);
             gameOver();
-        }
-        else
-        {
+        } else {
             update();
         }
 
@@ -165,6 +169,7 @@ public class GameEngine
         if (!_playing)
         {
             _gameOverText.draw(matrix);
+            _rankText.draw(matrix);
         }
     }
 
@@ -190,8 +195,7 @@ public class GameEngine
 
     public void startGame()
     {
-        if (_playing)
-        {
+        if (_playing) {
             return;
         }
 
@@ -200,8 +204,7 @@ public class GameEngine
         _frames = 0;
         _framesBetweenAddingAsteroid = 64;
 
-        for (int i = 0; i < 5; i++)
-        {
+        for (int i = 0; i < 5; i++) {
             ChickenSprite chicken = _chickenPool.spawn();
             chicken.init();
             chicken.setRatio(_ratio);
@@ -209,18 +212,37 @@ public class GameEngine
         }
     }
 
-    public void gameOver()
-    {
-        _playing = false;
-    }
+    /* TODO: Refactor the game over screen so it will count the score and the most combo */
+    public void gameOver() {
+        String rankString = "Game Rank: " + gameRank(_asteroidCount,bestCombo);
+        String gameOverString = "Score: "+_asteroidCount+". Best combo: " + bestCombo;
+        _gameOverText.setText(gameOverString, TextSprite.TEXT_ALIGN_CENTER, 0, Color.WHITE);
 
+        _rankText.setText(rankString,TextSprite.TEXT_ALIGN_CENTER,0,Color.WHITE);
+
+        _playing = false;
+        for(int i = _asteroids.size() -1; i >= 0; i--){
+            AsteroidSprite asteroid = _asteroids.get(i);
+            breakAsteroid(asteroid);
+            _asteroidPool.kill(asteroid);
+            _asteroids.remove(i);
+        }
+    }
+    public String gameRank(int _asteroidBreak, int bestCombo){
+        int score = _asteroidBreak*110 + bestCombo*300;
+        if(score <= 123000 && score > 100000 ) return "S";
+        else if(score <= 100000 && score > 80000) return "A";
+        else if(score <= 80000 && score > 60000) return "B";
+        else if(score <= 60000 && score > 40000) return "C";
+        else if(score <= 40000 && score > 20000) return "D";
+        else return "F";
+    }
     public AsteroidSprite spawnAsteroid ()
     {
         return _asteroidPool.spawn();
     }
 
-    public void addAsteroid (AsteroidSprite asteroid)
-    {
+    public void addAsteroid (AsteroidSprite asteroid) {
         asteroid.setRatio(_ratio);
         _asteroids.add(asteroid);
     }
@@ -231,39 +253,39 @@ public class GameEngine
         {
             AsteroidSprite asteroid = _asteroids.get(i);
             boolean collided = false;
-            if (asteroid.collidesWith(_player))
-            {
+            if (asteroid.collidesWith(_player)) {
                 collided = true;
                 _asteroidCountText.setText(Integer.toString(++_asteroidCount));
+                combo++;
                 breakAsteroid(asteroid);
                 _asteroidPool.kill(asteroid);
                 _asteroids.remove(i--);
+                playSound(_context,R.raw.rockbreaksound);
             }
-            else
-            {
-                for (int j = 0; j < _chickens.size(); j++)
-                {
+            else {
+                for (int j = 0; j < _chickens.size(); j++) {
                     ChickenSprite chicken = _chickens.get(j);
-                    if (asteroid.collidesWith(chicken))
-                    {
+                    if (asteroid.collidesWith(chicken)) {
+                        if(combo > bestCombo){
+                            bestCombo = combo;
+                        }
+                        combo = 0;
                         _chickenPool.kill(chicken);
                         _chickens.remove(j--);
+                        playSound(_context,R.raw.deadchickensound);
                     }
                 }
             }
 
-            if (!collided && !asteroid.update())
-            {
+            if (!collided && !asteroid.update()) {
                 _asteroidPool.kill(asteroid);
                 _asteroids.remove(i--);
             }
         }
 
-        for (int i = 0; i < _brokenAsteroids.size(); i++)
-        {
+        for (int i = 0; i < _brokenAsteroids.size(); i++) {
             BrokenAsteroidSprite brokenAsteroid = _brokenAsteroids.get(i);
-            if (!brokenAsteroid.update())
-            {
+            if (!brokenAsteroid.update()) {
                 _brokenAsteroidPool.kill(brokenAsteroid);
                 _brokenAsteroids.remove(i--);
             }
@@ -431,11 +453,11 @@ public class GameEngine
             _totalDiffs += timeDiff;
             if (timeDiff > 20)
             {
-                Timber.d("LogFrame",String.format("long frame %d, %d millis", _statFrames, timeDiff));
+                Logging.d("LogFrame",String.format("long frame %d, %d millis", _statFrames, timeDiff));
             }
             if (_statFrames % 128 == 0)
             {
-                Timber.d("Average",String.format("avg = %f %f %d", (_totalDiffs / _statFrames), _totalDiffs, _statFrames));
+                Logging.d("Average",String.format("avg = %f %f %d", (_totalDiffs / _statFrames), _totalDiffs, _statFrames));
             }
         }
 
@@ -447,12 +469,12 @@ public class GameEngine
         long len = SystemClock.elapsedRealtime() - _now;
         if (len > 20)
         {
-            Timber.d("LongLength",String.format("long len %d, %d millis", _statFrames, len));
+            Logging.d("LongLength",String.format("long len %d, %d millis", _statFrames, len));
         }
         _totalLens += len;
         if (_statFrames % 128 == 0)
         {
-            Timber.d("AverageLength",String.format("avg len = %f %f %d", (_totalLens / _statFrames), _totalLens, _statFrames));
+            Logging.d("AverageLength",String.format("avg len = %f %f %d", (_totalLens / _statFrames), _totalLens, _statFrames));
         }
     }
     //endregion

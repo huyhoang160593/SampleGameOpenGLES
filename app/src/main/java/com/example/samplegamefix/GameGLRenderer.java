@@ -35,8 +35,10 @@ public class GameGLRenderer implements GLSurfaceView.Renderer
         GLES20.glEnable(GLES20.GL_BLEND);
         GLES20.glBlendEquation(GLES20.GL_FUNC_ADD);
         GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-
-        GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+        /* DEPTH_TEST cause image IMG alpha texture overlap, reference here
+            https://stackoverflow.com/questions/11748176/opengles-2-0-png-alpha-texture-overlap
+        */
+//        GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
         TextureSprite.initGlState();
 

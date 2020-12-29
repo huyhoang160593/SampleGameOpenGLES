@@ -35,8 +35,12 @@ public class GameGLSurfaceView extends GLSurfaceView
 
         setEGLContextClientVersion(2);
 
-        setEGLConfigChooser(false);
-        getHolder().setFormat(PixelFormat.RGBA_8888);
+//        setEGLConfigChooser(false);
+//        getHolder().setFormat(PixelFormat.RGBA_8888);
+        setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        getHolder().setFormat(PixelFormat.TRANSLUCENT);
+        setBackgroundResource(R.drawable.skybackground1);
+        setZOrderOnTop(true);
 
         if (!isInEditMode())
         {

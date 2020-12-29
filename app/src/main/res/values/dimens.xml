@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="asteroid_text_size">16sp</dimen>
+    <dimen name="asteroid_text_size">20sp</dimen>
     <dimen name="game_over_text_size">32sp</dimen>
+    <dimen name="rank_text_size">50sp</dimen>
 </resources>
