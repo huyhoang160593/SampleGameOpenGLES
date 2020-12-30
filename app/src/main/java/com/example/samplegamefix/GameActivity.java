@@ -21,7 +21,6 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 public class GameActivity extends AppCompatActivity implements ViewTreeObserver.OnGlobalLayoutListener {
-    RelativeLayout relativeLayout;
 
     @BindView(R.id.root_layout)
     View _root;
