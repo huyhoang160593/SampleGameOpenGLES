@@ -8,7 +8,7 @@ import android.util.Log;
 
 public class TiltHelperAccel extends TiltHelper implements SensorEventListener
 {
-    private static final float TILT_MAX = 180.0f;
+    private static final float TILT_MAX = 200.0f;
 
     private final SensorManager _sensorManager;
     private final Sensor _accelerometer;
@@ -29,7 +29,6 @@ public class TiltHelperAccel extends TiltHelper implements SensorEventListener
         if (event.values == null)
         {
             Logging.w("ValueNull","event.values is null");
-            return;
         }
 
         int sensorType = event.sensor.getType();
@@ -40,7 +39,6 @@ public class TiltHelperAccel extends TiltHelper implements SensorEventListener
                 break;
             default:
                 Logging.w("Unknown sensor type %d", String.valueOf(sensorType));
-                return;
         }
     }
 

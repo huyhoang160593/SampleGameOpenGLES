@@ -3,7 +3,9 @@ package com.example.samplegamefix.engine;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.media.AudioAttributes;
 import android.media.MediaPlayer;
+import android.media.SoundPool;
 import android.os.SystemClock;
 import android.util.Log;
 import com.example.samplegamefix.R;
@@ -37,7 +39,6 @@ public class GameEngine
     private TextSprite _asteroidCountText;
     private TextSprite _gameOverText;
     private TextSprite _rankText;
-    private MediaPlayer FXPlayer;
     //endregion
 
     //region game state
@@ -58,28 +59,36 @@ public class GameEngine
     private Log Logging;
     //endregion
 
+    //region audio stuff
+    private SoundPool soundPool;
+    int deadchickensound,rockbreaksound,gameoversound;
+    //endregion
+
     public GameEngine (Context context)
     {
         _context = context;
         _asteroidPool = new SpritePool<>(context, 100, AsteroidSprite.class);
         _brokenAsteroidPool = new SpritePool<>(context, 100, BrokenAsteroidSprite.class);
         _chickenPool = new SpritePool<>(context, 5, ChickenSprite.class);
-        FXPlayer = new MediaPlayer();
+
+        AudioAttributes audioAttributes = new AudioAttributes
+                .Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+        soundPool = new SoundPool
+                .Builder()
+                .setMaxStreams(7)
+                .setAudioAttributes(audioAttributes)
+                .build();
+        deadchickensound = soundPool.load(_context,R.raw.deadchickensound,1);
+        rockbreaksound = soundPool.load(_context,R.raw.rockbreaksound,1);
+        gameoversound = soundPool.load(_context,R.raw.gameoversound,1);
 
         startGame();
     }
 
-    public void playSound(Context context,int _id)
-    {
-        if(FXPlayer != null)
-        {
-            FXPlayer.stop();
-            FXPlayer.release();
-        }
-        FXPlayer = MediaPlayer.create(context, _id);
-        if(FXPlayer != null)
-            FXPlayer.start();
-    }
+
 
 
     public void initSprites ()
@@ -149,10 +158,9 @@ public class GameEngine
         setViewLocations(_viewLocations);
     }
 
-    public void drawFrame (float matrix[])
+    public void drawFrame (float[] matrix)
     {
         if (_chickens.isEmpty()) {
-            playSound(_context,R.raw.gameoversound);
             gameOver();
         } else {
             update();
@@ -198,7 +206,8 @@ public class GameEngine
         if (_playing) {
             return;
         }
-
+        soundPool.play(gameoversound,1,1,2,0,1);
+        bestCombo = 0;
         _playing = true;
         _asteroidCount = 0;
         _frames = 0;
@@ -260,7 +269,8 @@ public class GameEngine
                 breakAsteroid(asteroid);
                 _asteroidPool.kill(asteroid);
                 _asteroids.remove(i--);
-                playSound(_context,R.raw.rockbreaksound);
+                soundPool.play(rockbreaksound,1, 1, 0, 0, 1);
+//                playSound(_context,R.raw.rockbreaksound);
             }
             else {
                 for (int j = 0; j < _chickens.size(); j++) {
@@ -272,7 +282,8 @@ public class GameEngine
                         combo = 0;
                         _chickenPool.kill(chicken);
                         _chickens.remove(j--);
-                        playSound(_context,R.raw.deadchickensound);
+                        soundPool.play(deadchickensound,1, 1, 0, 0, 1);
+//                        playSound(_context,R.raw.deadchickensound);
                     }
                 }
             }
@@ -292,7 +303,7 @@ public class GameEngine
         }
     }
 
-    private void drawAsteroids (float matrix[])
+    private void drawAsteroids (float[] matrix)
     {
         if (_asteroids.size() > 0)
         {
@@ -307,11 +318,11 @@ public class GameEngine
 
     private void breakAsteroid (AsteroidSprite asteroid)
     {
-        float origPosition[] = asteroid.getPosition();
-        float origVector[] = asteroid.getVector();
-        float origScale[] = asteroid.getScale();
+        float[] origPosition = asteroid.getPosition();
+        float[] origVector = asteroid.getVector();
+        float[] origScale = asteroid.getScale();
         float newScale = origScale[0] / 4;
-        float p[] = new float[] {
+        float[] p = new float[] {
                 origScale[1] * 1 / 4,
                 origScale[1] * 1 / 2,
                 origScale[1],
@@ -320,8 +331,8 @@ public class GameEngine
         };
         for (int i = 0; i < 5; i++)
         {
-            float newPosition[] = new float[3];
-            float newVector[] = new float[3];
+            float[] newPosition = new float[3];
+            float[] newVector = new float[3];
             newPosition[1] = origPosition[1] + p[i]; //move it up a bit
             newVector[1] = (float) (origVector[1] * (0.8f + 0.2f * Math.random())); //slow it's speed a bit
 
@@ -361,7 +372,7 @@ public class GameEngine
         }
     }
 
-    private void drawChickens (float matrix[])
+    private void drawChickens (float[] matrix)
     {
         if (_chickens.size() > 0)
         {
@@ -382,8 +393,8 @@ public class GameEngine
 
     private void initHUDIcon (AsteroidSprite sprite, float ratio, int id)
     {
-        float coords[] = new float[2];
-        float scale[] = new float[2];
+        float[] coords = new float[2];
+        float[] scale = new float[2];
 
         sprite.setRatio(ratio);
         Rect position = _viewLocations.get(id);
@@ -394,7 +405,7 @@ public class GameEngine
 
     private void initHUDText (TextSprite textSprite, String text, int textAlign, float ratio, int id)
     {
-        float coords[] = new float[2];
+        float[] coords = new float[2];
         textSprite.init(ratio, _width, Math.round(_context.getResources().getDimension(R.dimen.asteroid_text_size)));
         textSprite.setText(text, textAlign, 0, Color.WHITE);
         convertAndroidLocationToGL(coords, _viewLocations.get(id));
@@ -405,7 +416,7 @@ public class GameEngine
         textSprite.getPosition()[1] = coords[1];
     }
 
-    private void convertAndroidLocationToGLCentered (float glPos[], Rect androidLocation)
+    private void convertAndroidLocationToGLCentered (float[] glPos, Rect androidLocation)
     {
         glPos[0] = androidLocation.centerX() / _width * 2 - 1;
         float yPercentage = androidLocation.centerY() / _height;
@@ -413,7 +424,7 @@ public class GameEngine
         glPos[1] = -(yPercentageGl - _ratio);
     }
 
-    private void convertAndroidLocationToGL (float glPos[], Rect androidLocation)
+    private void convertAndroidLocationToGL (float[] glPos, Rect androidLocation)
     {
         glPos[0] = androidLocation.left / _width * 2 - 1;
         float yPercentage = androidLocation.bottom / _height;
@@ -421,61 +432,62 @@ public class GameEngine
         glPos[1] = -(yPercentageGl - _ratio);
     }
 
-    private void convertAndroidLocationToGLScale (float glScale[], Rect androidLocation)
+    private void convertAndroidLocationToGLScale (float[] glScale, Rect androidLocation)
     {
         glScale[0] = androidLocation.width() / _width;
         glScale[1] = androidLocation.height() / _width;
     }
 
-    public void destroy ()
-    {
+    public void destroy () {
         if (_tiltHelper != null)
         {
             _tiltHelper.destroy();
         }
     }
-
-    //region timing debug
-    private long _now;
-    private long _lastUpdate;
-    private float _totalDiffs;
-    private float _totalLens;
-    private long _statFrames;
-
-    private void timingDebugStart ()
-    {
-        _now = SystemClock.elapsedRealtime();
-
-        if (_lastUpdate != 0)
-        {
-            _statFrames++;
-            long timeDiff = _now - _lastUpdate;
-            _totalDiffs += timeDiff;
-            if (timeDiff > 20)
-            {
-                Logging.d("LogFrame",String.format("long frame %d, %d millis", _statFrames, timeDiff));
-            }
-            if (_statFrames % 128 == 0)
-            {
-                Logging.d("Average",String.format("avg = %f %f %d", (_totalDiffs / _statFrames), _totalDiffs, _statFrames));
-            }
-        }
-
-        _lastUpdate = _now;
-    }
-
-    private void timingDebugEnd ()
-    {
-        long len = SystemClock.elapsedRealtime() - _now;
-        if (len > 20)
-        {
-            Logging.d("LongLength",String.format("long len %d, %d millis", _statFrames, len));
-        }
-        _totalLens += len;
-        if (_statFrames % 128 == 0)
-        {
-            Logging.d("AverageLength",String.format("avg len = %f %f %d", (_totalLens / _statFrames), _totalLens, _statFrames));
-        }
-    }
-    //endregion
 }
+
+//
+//    //region timing debug
+//    private long _now;
+//    private long _lastUpdate;
+//    private float _totalDiffs;
+//    private float _totalLens;
+//    private long _statFrames;
+//
+//    private void timingDebugStart ()
+//    {
+//        _now = SystemClock.elapsedRealtime();
+//
+//        if (_lastUpdate != 0)
+//        {
+//            _statFrames++;
+//            long timeDiff = _now - _lastUpdate;
+//            _totalDiffs += timeDiff;
+//            if (timeDiff > 20)
+//            {
+//                Logging.d("LogFrame",String.format("long frame %d, %d millis", _statFrames, timeDiff));
+//            }
+//            if (_statFrames % 128 == 0)
+//            {
+//                Logging.d("Average",String.format("avg = %f %f %d", (_totalDiffs / _statFrames), _totalDiffs, _statFrames));
+//            }
+//        }
+//
+//        _lastUpdate = _now;
+//    }
+//
+//    private void timingDebugEnd ()
+//    {
+//        long len = SystemClock.elapsedRealtime() - _now;
+//        if (len > 20)
+//        {
+//            Logging.d("LongLength",String.format("long len %d, %d millis", _statFrames, len));
+//        }
+//        _totalLens += len;
+//        if (_statFrames % 128 == 0)
+//        {
+//            Logging.d("AverageLength",String.format("avg len = %f %f %d", (_totalLens / _statFrames), _totalLens, _statFrames));
+//        }
+//    }
+//    //endregion
+//}

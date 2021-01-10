@@ -2,13 +2,14 @@ package com.example.samplegamefix;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
 import android.graphics.Rect;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
-import android.widget.RelativeLayout;
 
 import com.example.samplegamefix.sprites.TextureSprite;
 
@@ -21,6 +22,21 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 public class GameActivity extends AppCompatActivity implements ViewTreeObserver.OnGlobalLayoutListener {
+
+    private MediaPlayer FXPlayer;
+
+    public void playSound(Context context, int _id, boolean loppingSet)
+    {
+        if(FXPlayer != null)
+        {
+            FXPlayer.stop();
+            FXPlayer.release();
+        }
+        FXPlayer = MediaPlayer.create(context, _id);
+        if(FXPlayer != null)
+            FXPlayer.start();
+        FXPlayer.setLooping(loppingSet);
+    }
 
     @BindView(R.id.root_layout)
     View _root;
@@ -37,6 +53,8 @@ public class GameActivity extends AppCompatActivity implements ViewTreeObserver.
         ButterKnife.bind(this);
 
         _root.getViewTreeObserver().addOnGlobalLayoutListener(this);
+        FXPlayer = new MediaPlayer();
+        playSound(this,R.raw.theworldrevolvingmusicbox,true);
     }
 
     @Override
@@ -46,7 +64,7 @@ public class GameActivity extends AppCompatActivity implements ViewTreeObserver.
         _gameGLSurfaceView.onResume();
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
+        FXPlayer.start();
         toggleFullscreen(true);
     }
 
@@ -56,7 +74,7 @@ public class GameActivity extends AppCompatActivity implements ViewTreeObserver.
         _gameGLSurfaceView.onPause();
 
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
+        FXPlayer.pause();
         super.onPause();
     }
 
@@ -100,12 +118,12 @@ public class GameActivity extends AppCompatActivity implements ViewTreeObserver.
 
         if (!(v instanceof ViewGroup))
         {
-            ArrayList<View> viewArrayList = new ArrayList<View>();
+            ArrayList<View> viewArrayList = new ArrayList<>();
             viewArrayList.add(v);
             return viewArrayList;
         }
 
-        ArrayList<View> result = new ArrayList<View>();
+        ArrayList<View> result = new ArrayList<>();
 
         ViewGroup viewGroup = (ViewGroup) v;
         for (int i = 0; i < viewGroup.getChildCount(); i++)
@@ -113,7 +131,7 @@ public class GameActivity extends AppCompatActivity implements ViewTreeObserver.
 
             View child = viewGroup.getChildAt(i);
 
-            ArrayList<View> viewArrayList = new ArrayList<View>();
+            ArrayList<View> viewArrayList = new ArrayList<>();
             viewArrayList.add(v);
             viewArrayList.addAll(getAllChildren(child));
 
